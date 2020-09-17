@@ -1,0 +1,165 @@
+---
+title: "trabalho_micro3"
+author: "Guilherme Viegas"
+date: "9/6/2020"
+output: html_document
+---
+
+
+
+```{r setup, include=FALSE}
+library(dplyr)
+library(ggplot2)
+library(lubridate)
+library(sidrar)
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+```{r initial_coments, include=FALSE}
+# Análise da economia de Santa Catarina - draft
+```
+
+
+## Os efeitos do covid-19 no estado de Santa Catarina
+
+## The effects of covid-19 in the state of Santa Catarina
+
+## Los efectos de covid-19 en el estado de Santa Catarina
+
+### Resumo PT
+
+### Abstract EN
+
+### Resumen ES
+
+### DE
+
+
+## 1. Introdução
+
+## 2. ...
+
+## 2.1 ...
+
+## 2.2 ...
+
+## 3. Metodologia
+
+
+##### * Dê mais zoom para detalhes.
+
+```{r rede_dataviva_secex, fig.width=12, fig.height=8, warning=FALSE, message=FALSE}
+htmltools::HTML("<iframe width='1000' height='600' src='http://dataviva.info/pt/embed/network/secex/5sc/all/all/hs/?controls=true&year=2017&size=export_val&spotlight=true&rca_scope=bra_rca&color=color' frameborder='0'></iframe>")
+```
+
+### continue
+
+```{r sidrar1, fig.width=12, fig.height=8, warning=FALSE, message=FALSE}
+
+seqsem <- seq.Date(from = as.Date("2012-02-15"), to = today(), by = "quarter") %>% 
+  quarter(., with_year = TRUE) %>% 
+  sub(pattern = "\\.", replacement = "0", x = .)
+
+t4096 <- get_sidra(
+  x = "4096", 
+  period = seqsem, 
+  geo = c("State", "Brazil"), 
+  geo.filter = list("Brazil" = 1, "State" = c(42))
+)
+
+t4096f <- t4096 %>% 
+  janitor::clean_names() %>%
+  dplyr::select("brasil_e_unidade_da_federacao", "brasil_e_unidade_da_federacao_codigo", "trimestre_codigo", "trimestre", "variavel", "posicao_na_ocupacao_no_trabalho_principal", "valor", "unidade_de_medida") %>% 
+  dplyr::filter(variavel == "Distribuição percentual das pessoas de 14 anos ou mais de idade, ocupadas na semana de referência") %>% 
+  dplyr::filter(brasil_e_unidade_da_federacao == "Santa Catarina")
+
+seqtri <- seq.Date(from = as.Date("2012-02-015"), to = lubridate::today(), by = "quarter")
+t4096f_Empregado <- t4096f[which(t4096f$posicao_na_ocupacao_no_trabalho_principal == "Empregado"), "valor"]
+t4096f_Conta_propria <- t4096f[which(t4096f$posicao_na_ocupacao_no_trabalho_principal == "Conta própria"), "valor"]
+
+t4096fdf <- data.frame(
+  t4096f_Empregado = t4096f_Empregado,
+  t4096f_Conta_propria = t4096f_Conta_propria,
+  trimestres = seqtri[1:length(t4096f_Empregado)]
+)
+
+secm <- 2.9
+t4096plot <- ggplot(t4096fdf, aes(x=trimestres))+
+  geom_line(aes(y = t4096f_Empregado, color = "Empregado"))+
+  geom_line(aes(y = t4096f_Conta_propria*secm, color = "Trabalhador autônomo"))+
+  scale_y_continuous(name = "Empregado", 
+                     sec.axis = sec_axis(~./secm, name = "Trabalhador autônomo", 
+                                         labels = function(b) { paste0(round(b / 1, 0), ".")}))+
+  scale_color_manual(values=c("#9999CC", "#CC6666"))+
+  theme_minimal()+
+  theme(legend.position="bottom")+
+  labs(
+    title = "Variação na ocupação principal dos residentes de Santa Catarina",
+    subtitle = "Distribuição percentual das pessoas de 14 anos ou mais de idade, ocupadas na semana de referência, entre 2012 e julho de 2020",
+    caption = "Guilherme Viegas",
+    colour = "Ocupação principal"
+  )
+t4096plot
+
+```
+
+### Continue...
+
+### continue
+
+
+```{r sidrar2, fig.width=12, fig.height=8, warning=FALSE, message=FALSE}
+seqsem <- seq.Date(from = as.Date("2012-02-15"), to = lubridate::today(), by = "quarter") %>% 
+  quarter(., with_year = TRUE) %>% 
+  sub(pattern = "\\.", replacement = "0", x = .)
+
+t5433 <- get_sidra(
+  x = "5433", 
+  period = seqsem, 
+  geo = c("State", "Brazil"), 
+  geo.filter = list("Brazil" = 1, "State" = c(42)),
+)
+
+t5433f <- t5433 %>% 
+  janitor::clean_names() %>%
+  dplyr::select("brasil_e_unidade_da_federacao", "brasil_e_unidade_da_federacao_codigo", "trimestre_codigo", "trimestre", "variavel", "posicao_na_ocupacao_e_categoria_do_emprego_no_trabalho_principal", "valor", "unidade_de_medida") %>% 
+  dplyr::filter(variavel == "Rendimento médio nominal do trabalho principal, efetivamente recebido no mês de referência, pelas pessoas de 14 anos ou mais de idade, ocupadas na semana de referência, com rendimento de trabalho") %>% 
+  dplyr::filter(brasil_e_unidade_da_federacao == "Santa Catarina")
+
+seqtri <- seq.Date(from = as.Date("2012-02-15"), to = lubridate::today(), by = "quarter")
+t5433f_empregador <- t5433f[which(t5433f$posicao_na_ocupacao_e_categoria_do_emprego_no_trabalho_principal == "Empregador"), "valor"]
+t5433f_cp <- t5433f[which(t5433f$posicao_na_ocupacao_e_categoria_do_emprego_no_trabalho_principal == "Conta própria"), "valor"]
+
+
+t5434df <- data.frame(
+  t5433f_empregador = t5433f_empregador,
+  t5433f_cp = t5433f_cp,
+  trimestres = seqtri[1:length(t5433f_empregador)]
+)
+
+secm3 <- 2
+t5434plot <- ggplot(t5434df, aes(x=trimestres))+
+  geom_line(aes(y = t5433f_empregador, color = "Empregador"))+
+  geom_line(aes(y = t5433f_cp*secm3, color = "Trabalhador autônomo"))+
+  scale_y_continuous(name = "Empregador", 
+                     sec.axis = sec_axis(~./secm3, name = "Trabalhador autônomo", 
+                                         labels = function(b) { paste0(round(b / 1, 0), ".")}))+
+  scale_color_manual(values=c("#9999CC", "#CC6666"))+
+  theme_minimal()+
+  theme(legend.position="bottom")+
+  labs(
+    title = "Variação no rendimento nominal efetivamente recebido dos residentes de Santa Catarina",
+    subtitle = "Rendimento médio nominal do trabalho principal, efetivamente recebido no mês de referência, pelas pessoas de 14 anos ou mais de idade, ocupadas na semana de referência, com rendimento de trabalho",
+    caption = "Guilherme Viegas",
+    colour = "Categoria do trabalho"
+  )
+t5434plot
+```
+
+
+
+## 4 Resultados e discussões
+
+## 5. Considerações finais
+
+## Referências
