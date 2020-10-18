@@ -1,5 +1,8 @@
 # install.packages("sidrar")
 library(sidrar)
+library(dplyr)
+library(ggplot2)
+library(lubridate)
 
 info_sidra(x = "4096")
 
@@ -125,7 +128,7 @@ ggplot(t5434df, aes(x=trimestres))+
   # geom_line(aes(y = t5434f_serv_domest, color = "t5434f_serv_domest"))+ # **
   # geom_line(aes(y = t5434f_maldef, color = "t5434f_maldef"))+
   scale_y_continuous(name = "Informação, comunicação e atividades financeiras, imobiliárias, profissionais e administrativas", 
-                     sec.axis = sec_axis(~./secm2, name = "Empregados por conta própria", 
+                     sec.axis = sec_axis(~./secm2, name = "Indústria geral", 
                                          labels = function(b) { paste0(round(b / 1, 0), ".")}))+
   # scale_color_manual(values=c("#9999CC", "#CC6666"))+
   theme_minimal()+
@@ -181,10 +184,10 @@ t5434df <- data.frame(
 
 secm3 <- 2
 ggplot(t5434df, aes(x=trimestres))+
-  geom_line(aes(y = t5433f_empregador, color = "Empregador"))+
-  geom_line(aes(y = t5433f_cp*secm3, color = "Trabalhador autônomo"))+
-  scale_y_continuous(name = "Empregador", 
-                     sec.axis = sec_axis(~./secm3, name = "Trabalhador autônomo", 
+  geom_line(aes(y = t5433f_empregador, color = "Empregadores"))+
+  geom_line(aes(y = t5433f_cp*secm3, color = "Trabalhadores autônomos"))+
+  scale_y_continuous(name = "Empregadores", 
+                     sec.axis = sec_axis(~./secm3, name = "Trabalhadores autônomos", 
                                          labels = function(b) { paste0(round(b / 1, 0), ".")}))+
   scale_color_manual(values=c("#9999CC", "#CC6666"))+
   theme_minimal()+
