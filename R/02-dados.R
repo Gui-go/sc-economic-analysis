@@ -85,3 +85,22 @@ plot(shp_sc_rgime["nm_rgi"])
 shp_sc_rgint <- sf::st_read("data/SC/SC_RG_Intermediarias_2019.shp") %>%
   janitor::clean_names()
 plot(shp_sc_rgint["nm_rgint"])
+
+
+
+# API IBGE ----------------------------------------------------------------
+
+if(!require("httr")){install.packages("httr")}
+if(!require("jsonlite")){install.packages("jsonlite")}
+
+api_get <- GET(url = "https://servicodados.ibge.gov.br/api/v1/localidades/distritos")
+api_content <- content(api_get, as = "text")
+api_df <- fromJSON(api_content, flatten = TRUE)
+# View(api_json)
+
+UF = "SC"
+url = paste0("https://servicodados.ibge.gov.br/api/v1/localidades/estados/", UF,"/distritos")
+api_get <- GET(url = url)
+api_content <- content(api_get, as = "text")
+api_df <- fromJSON(api_content, flatten = TRUE)
+# View(api_json)
