@@ -31,7 +31,7 @@ if(!require("rgdal")){install.packages("rgdal")}
 api_get <- GET(url = "https://servicodados.ibge.gov.br/api/v1/localidades/distritos")
 api_content <- content(api_get, as = "text")
 api_df <- fromJSON(api_content, flatten = TRUE)
-# View(api_json)
+View(api_df)
 
 # Ge everything related with this UF
 UF = "SC"
@@ -63,6 +63,19 @@ api_content <- content(x = api_get, as = "text", type = "json", encoding = "UTF-
 api_df <- fromJSON(api_content, flatten = TRUE)
 # View(api_df)
 
+# Malhas 41, 42, 43
+url_geojson = "http://servicodados.ibge.gov.br/api/v2/malhas/42?formato=application/vnd.geo+json"
+api_get <- GET(url = url_geojson)
+api_content <- content(x = api_get, as = "text", type = "geo+json", encoding = "UTF-8")
+jsontest = toJSON(api_content, pretty = TRUE, auto_unbox = TRUE)
+class(jsontest)
+plot(jsontest)
+
+data_url <- "http://servicodados.ibge.gov.br/api/v2/malhas/42/?formato=application/vnd.geo+json"
+data_file <- "ibge_try1.geojson"
+utils::download.file(data_url, data_file)
+data_json <- geojsonio::geojson_read(data_file, what = "sp")
+plot(data_json)
 
 
 

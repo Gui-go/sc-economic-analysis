@@ -26,7 +26,7 @@ if(!require(vroom)){install.packages("vroom")}
 # Data --------------------------------------------------------------------
 
 # Para obter o shp das cidades de todo o Brasil
-# GeoCiencias > Downloads > organizacao_do_territorio > malhas_territoriais > malhas_municipais > municipio_2019 > Brasil > BR > br_municipios.zip
+# GeoCiencias > Downloads > organizacao_do_territorio > malhas_territoriais > malhas_municipais > municipio_2019 > Brasil > BR > br_municipios_20200807.zip
 
 # shp_br_uf
 shp_br_uf <- sf::st_read("data/br_unidades_da_federacao/") %>%

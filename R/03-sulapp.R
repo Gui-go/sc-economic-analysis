@@ -17,46 +17,35 @@ server <- function(input, output) {
   
   reac <- shiny::reactive({
     
-    shp_br_muni <- br_muni %>%
-      janitor::clean_names() %>% 
-      cent_as_cols(.) %>% 
-      as.data.frame() %>% 
-      dplyr::select(-geometry) %>% 
-      sf::st_as_sf(x = ., coords = c("centlng", "centlat")) %>%
-      sf::st_set_crs(4326) %>% 
-      # dplyr::filter(sigla_uf%in%input$input_serv_estado) %>% 
-      group_by(sigla_uf) %>% 
-      dplyr::summarise()
     
-    hex_sul <- shpToHexagon(shp = shp_br_muni, cellsize = 1)
-    
-    #
-    expcmt <- expcm %>% 
-      janitor::clean_names() %>% 
-      # dplyr::filter(CO_ANO>=2010) %>% 
-      # dplyr::filter(CO_ANO%in%2020) %>% 
-      # dplyr::filter(sg_uf_mun%in%input$input_serv_estado) %>%
-      dplyr::group_by(co_mun) %>% 
-      dplyr::summarise(sum_vl_fob = sum(vl_fob)) %>% 
-      dplyr::mutate("cd_mun"=as.character(co_mun))
-    expcmt[is.na(expcmt)] <- 0
-    sul <- left_join(shp_sul, expcmt, by="cd_mun") %>% 
-      dplyr::select(-co_mun)
-    sul[is.na(sul)] <- 0
-    hex_sul_x <- sf::st_join(hex_sul %>% sf::st_set_crs(4326), sul %>% sf::st_set_crs(4326), join = sf::st_contains) %>%  
+    df_sul <- left_join(shp_br_muni, df, by="cd_mun") %>% 
+      dplyr::filter(sigla_uf=="SC")
+    df_sul$sum_vl_fob[is.na(df_sul$sum_vl_fob)] <- 0
+    sul_hex <- df_sul %>% 
+      dplyr::group_by(sigla_uf) %>% 
+      dplyr::summarise() 
+    sul_hexs <- sul_hex %>% 
+      shpToHexagon(shp = ., cellsize = 1.15)
+    sul_hex_x <- sf::st_join(sul_hexs %>% sf::st_set_crs(4326), df_sul %>% sf::st_set_crs(4326), join = sf::st_contains) %>%  
       dplyr::group_by(hexagon) %>% 
       dplyr::summarise(
         sum_hex_sul_x = sum(sum_vl_fob)
+      ) %>% 
+      dplyr::mutate(sum_hex_sul_x = if_else(!is.na(sum_hex_sul_x), sum_hex_sul_x, 0)) %>% 
+      dplyr::mutate(
+        sum_hex_sul_hexcolor = case_when(
+          sum_hex_sul_x <= 2*10^9 ~ "Exportações <= 2e+9",
+          sum_hex_sul_x > 2*10^9 & sum_hex_sul_x <= 4*10^9 ~ "2e+9 > Exportações <= 4e+9",
+          sum_hex_sul_x > 4*10^9 & sum_hex_sul_x <= 6*10^9 ~ "4e+9 > Exportações <= 6e+9",
+          sum_hex_sul_x > 6*10^9 & sum_hex_sul_x <= 8*10^9 ~ "6e+9 > Exportações <= 8e+9",
+          sum_hex_sul_x > 8*10^9 & sum_hex_sul_x <= 10*10^9 ~ "8e+9 > Exportações <= 1e+10",
+          sum_hex_sul_x > 10*10^9 ~ "Exportações >= 1e+10"
+        )
       )
-    hex_sul_x$sum_hex_sul_x[is.na(hex_sul_x$sum_hex_sul_x)] <- 0
-    
-    
-    reaclist <- list(
-      "shp_br_uf" = shp_br_muni,
-      "hex_sul" = hex_sul,
-      "hex_sul_x" = hex_sul_x
+
+    list(
+      "sul_hex_x" = sul_hex_x
     )
-    
   })
   
   output$input_ui_estado <- shiny::renderUI({
@@ -75,33 +64,34 @@ server <- function(input, output) {
   })
   
   output$tsplot <- renderPlot({
-    reac_br_uf <- reac()[["shp_br_uf"]]
-    reac_hex_sul <- reac()[["hex_sul"]]
-    reac_hex_sul_x <- reac()[["hex_sul_x"]]
+    # reac_br_uf <- reac()[["shp_br_uf"]]
+    # reac_hex_sul <- reac()[["hex_sul"]]
+    sul_hex_x <- reac()[["sul_hex_x"]]
     ggplot() +
       # geom_raster(aes(fill = sum_hex_sul_x), data = hex_sul_x)
-      # geom_sf(aes(fill=sum_hex_sul_x), data = reac_hex_sul_x, color = "black", alpha=.5) +
-      # geom_sf(data = reac_hex_sul, color = "black", fill = NA, size = .8)+
-      geom_sf(data = reac_br_uf, color = "black", fill = NA, size = .8)+
-      # scale_fill_gradientn(colours = c("#a10000", "#a19600", "#33a100")) +
-      theme_minimal()
+      geom_sf(aes(fill=sum_hex_sul_hexcolor), data = sul_hex_x, color = "black", alpha=.5) +
+      geom_sf(data = sul_hex_x, color = "black", fill = NA, size = .8)+
+      # scale_fill_gradientn(colours = c("#e3e3e3", "#5c5c5c", "#303030", "#000000")) +
+      labs(fill = "Legenda")+
+      # ggplot2::scale_colour_manual(name = "grp",values = RColorBrewer::brewer.pal(length(unique(sul_hex_x$sum_hex_sul_hexcolor)),"Set1"))+
+      theme_void()
   })
   
-  output$input_ui_mun <- shiny::renderUI({
-    
-    shinyWidgets::pickerInput(
-      inputId = "input_serv_mun", 
-      label = "Escolha os municípios", 
-      choices = "colnames(expcmtm)[-c(1, 2, length(expcmtm))]", 
-      selected = "colnames(expcmtm)[-c(1, 2, length(expcmtm))]", 
-      multiple = T, 
-      options = shinyWidgets::pickerOptions(
-        actionsBox = TRUE,
-        selectAllText = "Todos",
-        deselectAllText = "Nenhum" 
-      )
-    )
-  })
+  # output$input_ui_mun <- shiny::renderUI({
+  #   
+  #   shinyWidgets::pickerInput(
+  #     inputId = "input_serv_mun", 
+  #     label = "Escolha os municípios", 
+  #     choices = "colnames(expcmtm)[-c(1, 2, length(expcmtm))]", 
+  #     selected = "colnames(expcmtm)[-c(1, 2, length(expcmtm))]", 
+  #     multiple = T, 
+  #     options = shinyWidgets::pickerOptions(
+  #       actionsBox = TRUE,
+  #       selectAllText = "Todos",
+  #       deselectAllText = "Nenhum" 
+  #     )
+  #   )
+  # })
   
   # output$tsplot_mun <- renderPlot({
   #   inputs <- input$input_serv_mun
