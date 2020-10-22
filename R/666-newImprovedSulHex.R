@@ -44,7 +44,7 @@ api_df_dmunisul <- jsonlite::fromJSON(api_content_dmunisul, flatten = TRUE)
 df_dmuni_sul <- api_df_dmunisul %>% 
   janitor::clean_names() %>% 
   dplyr::rename("cd_mun" = "municipio_id")
-
+rm(c(api_get_dmunisul, api_content_dmunisul, api_df_dmunisul))
 # Secex data
 # http://www.mdic.gov.br/index.php/comercio-exterior/estatisticas-de-comercio-exterior/base-de-dados-do-comercio-exterior-brasileiro-arquivos-para-download
 # Exportação > Volume único
@@ -57,7 +57,7 @@ exp_comex_sul10 <- exp_comex %>%
   dplyr::summarise(sum_vl_fob = sum(vl_fob)) %>% 
   dplyr::mutate("cd_mun"=as.integer(co_mun)) %>% 
   dplyr::select(cd_mun, sum_vl_fob)
-
+rm(exp_comex)
 # Malha geográfica
 # IBGE > GeoCiencias > Downloads > organizacao_do_territorio > malhas_territoriais > malhas_municipais > municipio_2019 > Brasil > BR > br_municipios_20200807.zip
 # Municípios do Sul
@@ -159,85 +159,92 @@ sul_hex <- sul_muni %>%
 
 
 # Plots -------------------------------------------------------------------
+gc()
 
-
-(g1 <- ggplot() +
-  geom_sf(aes(fill=sum_hex_vl_fob), data = sul_hex, color = "black", alpha=1) +
-  geom_sf(data = sf_sul_uf, color = "black", fill = NA, size = 1) +
-  theme_void() +
-  theme(
-    plot.title = element_text(hjust = 0.5),
-    plot.subtitle = element_text(hjust = 0.5)
+(g1 <- ggplot2::ggplot() +
+  ggplot2::geom_sf(ggplot2::aes(fill=sum_hex_vl_fob), data = sul_hex, color = "black", alpha=1) +
+  ggplot2::geom_sf(data = sf_sul_uf, color = "black", fill = NA, size = 1) +
+  ggplot2::theme_void() +
+  ggplot2::theme(
+    plot.title = ggplot2::element_text(hjust = 0.5),
+    plot.subtitle = ggplot2::element_text(hjust = 0.5)
   ) +
-  labs(
+   ggplot2::labs(
     title = "Exportações do Sul do Brasil agregadas em hexágonos", 
-    subtitle = "Distribuição contínua de jan/2010 à set/2020",
+    subtitle = "Distribuição contínua do somatório de jan/2010 à set/2020",
     caption = "Dados Secex",
     fill = "Legenda"
   ))
 
-(g2 <- ggplot() +
-  geom_sf(aes(fill=sum_hex_vl_fob), data = sul_hex, color = "black", alpha=1) +
-  geom_sf(data = sf_sul_uf, color = "black", fill = NA, size = 1) +
-  scale_fill_gradientn(colours = c("#e3e3e3", "#5c5c5c", "#303030", "#000000")) + #
-  theme_void() +
-  theme(
-    plot.title = element_text(hjust = 0.5),
-    plot.subtitle = element_text(hjust = 0.5)
+(g2 <- ggplot2::ggplot() +
+  ggplot2::geom_sf(ggplot2::aes(fill=sum_hex_vl_fob), data = sul_hex, color = "black", alpha=1) +
+  ggplot2::geom_sf(data = sf_sul_uf, color = "black", fill = NA, size = 1) +
+  ggplot2::scale_fill_gradientn(colours = c("#e3e3e3", "#5c5c5c", "#303030", "#000000")) + #
+  ggplot2::theme_void() +
+  ggplot2::theme(
+    plot.title = ggplot2::element_text(hjust = 0.5),
+    plot.subtitle = ggplot2::element_text(hjust = 0.5)
   ) +
-  labs(
+  ggplot2::labs(
     title = "Exportações do Sul do Brasil agregadas em hexágonos", 
-    subtitle = "Distribuição contínua de jan/2010 à set/2020",
+    subtitle = "Distribuição contínua do somatório de jan/2010 à set/2020",
     caption = "Dados Secex",
     fill = "Legenda"
   ))
 
-(g3 <- ggplot() +
-  geom_sf(aes(fill=sum_hex_vl_fob), data = sul_meso, color = "black", alpha=1) +
-  geom_sf(data = sf_sul_uf, color = "black", fill = NA, size = 1) +
-  scale_fill_gradientn(colours = c("#e3e3e3", "#5c5c5c", "#303030", "#000000")) + #
-  theme_void() +
-  theme(
-    plot.title = element_text(hjust = 0.5),
-    plot.subtitle = element_text(hjust = 0.5)
+(g3 <- ggplot2::ggplot() +
+  ggplot2::geom_sf(ggplot2::aes(fill=sum_hex_vl_fob), data = sul_meso, color = "black", alpha=1) +
+  ggplot2::geom_sf(data = sf_sul_uf, color = "black", fill = NA, size = 1) +
+  ggplot2::scale_fill_gradientn(colours = c("#e3e3e3", "#5c5c5c", "#303030", "#000000")) + #
+  ggplot2::theme_void() +
+  ggplot2::theme(
+    plot.title = ggplot2::element_text(hjust = 0.5),
+    plot.subtitle = ggplot2::element_text(hjust = 0.5)
   ) +
-  labs(
+  ggplot2::labs(
     title = "Exportações do Sul do Brasil agregadas em hexágonos", 
-    subtitle = "Distribuição contínua de jan/2010 à set/2020",
+    subtitle = "Distribuição contínua do somatório de jan/2010 à set/2020",
     caption = "Dados Secex",
     fill = "Legenda"
   ))
 
-(g4 <- ggplot() +
-  geom_sf(aes(fill=sum_hex_vl_fob), data = sul_micro, color = "black", alpha=1) +
-  geom_sf(data = sf_sul_uf, color = "black", fill = NA, size = 1) +
-  scale_fill_gradientn(colours = c("#e3e3e3", "#5c5c5c", "#303030", "#000000")) + #
-  theme_void() +
-  theme(
-    plot.title = element_text(hjust = 0.5),
-    plot.subtitle = element_text(hjust = 0.5)
+(g4 <- ggplot2::ggplot() +
+  ggplot2::geom_sf(ggplot2::aes(fill=sum_hex_vl_fob), data = sul_micro, color = "black", alpha=1) +
+  ggplot2::geom_sf(data = sf_sul_uf, color = "black", fill = NA, size = 1) +
+  ggplot2::scale_fill_gradientn(colours = c("#e3e3e3", "#5c5c5c", "#303030", "#000000")) + #
+  ggplot2::theme_void() +
+  ggplot2::theme(
+    plot.title = ggplot2::element_text(hjust = 0.5),
+    plot.subtitle = ggplot2::element_text(hjust = 0.5)
   ) +
-  labs(
+  ggplot2::labs(
     title = "Exportações do Sul do Brasil agregadas em hexágonos", 
-    subtitle = "Distribuição contínua de jan/2010 à set/2020",
+    subtitle = "Distribuição contínua do somatório de jan/2010 à set/2020",
     caption = "Dados Secex",
     fill = "Legenda"
   ))
 
-(g5 <- ggplot() +
-    geom_sf(aes(fill=sum_vl_fob), data = sul_muni, color = "black", alpha=1) +
-    geom_sf(data = sf_sul_uf, color = "black", fill = NA, size = 1) +
-    scale_fill_gradientn(colours = c("#e3e3e3", "#5c5c5c", "#303030", "#000000")) + #
-    theme_void() +
-    theme(
-      plot.title = element_text(hjust = 0.5),
-      plot.subtitle = element_text(hjust = 0.5)
+(g5 <- ggplot2::ggplot() +
+    ggplot2::geom_sf(ggplot2::aes(fill=sum_vl_fob), data = sul_muni, color = "black", alpha=1) +
+    ggplot2::geom_sf(data = sf_sul_uf, color = "black", fill = NA, size = 1) +
+    ggplot2::scale_fill_gradientn(colours = c("#e3e3e3", "#5c5c5c", "#303030", "#000000")) + #
+    ggplot2::theme_void() +
+    ggplot2::theme(
+      plot.title = ggplot2::element_text(hjust = 0.5),
+      plot.subtitle = ggplot2::element_text(hjust = 0.5)
     ) +
-    labs(
+    ggplot2::labs(
       title = "Exportações do Sul do Brasil agregadas em hexágonos", 
-      subtitle = "Distribuição contínua de jan/2010 à set/2020",
+      subtitle = "Distribuição contínua do somatório de jan/2010 à set/2020",
       caption = "Dados Secex",
       fill = "Legenda"
     ))
 
-ggpubr::ggarrange(g3, g4, g5, g1, g2, ncol = 5)
+ggpubr::ggarrange(
+  g3, 
+  g4, 
+  # g5, 
+  g2,
+  # g1, 
+  ncol = 5
+)
