@@ -36,13 +36,13 @@ if(!require("zoo")){install.packages("zoo")}
 
 source(file = "R/fct_shpToHexagon.R")
 source(file = "R/fct_centroid.R")
-# source(file = "R/111-shTranslator.R")
+source(file = "R/111-shTranslator.R")
 source(file = "R/fct_MoransI.R")
 # Dados -------------------------------------------------------------------
 
 # Divisão política minucipal+ do Sul
 # https://servicodados.ibge.gov.br/api/docs/localidades?versao=1
-api_get_dmunisul <- httr::GET(url = "https://servicodados.ibge.gov.br/api/v1/localidades/estados/41|42|43/distritos")
+api_get_dmunisul <- httr::GET(url = "https://servicodados.ibge.gov.br/api/v1/localidades/distritos")
 api_content_dmunisul <- httr::content(api_get_dmunisul, as = "text")
 api_df_dmunisul <- jsonlite::fromJSON(api_content_dmunisul, flatten = TRUE)
 df_dmuni_sul <- api_df_dmunisul %>% 
@@ -50,7 +50,7 @@ df_dmuni_sul <- api_df_dmunisul %>%
   dplyr::rename("cd_mun" = "municipio_id") %>% 
   dplyr::group_by(cd_mun, municipio_nome, municipio_microrregiao_id, municipio_microrregiao_nome, municipio_microrregiao_mesorregiao_id, municipio_microrregiao_mesorregiao_nome, municipio_microrregiao_mesorregiao_uf_id, municipio_microrregiao_mesorregiao_uf_regiao_sigla) %>% 
   dplyr::summarise() %>% 
-  dplyr::rename("nm_muni"="municipio_nome", "cd_micro"="municipio_microrregiao_id", "nm_micro"="municipio_microrregiao_nome", "cd_meso"="municipio_microrregiao_mesorregiao_id", "mn_Meso"="municipio_microrregiao_mesorregiao_nome", "cd_uf"="municipio_microrregiao_mesorregiao_uf_id", "sg_uf"="municipio_microrregiao_mesorregiao_uf_regiao_sigla")
+  dplyr::rename("nm_muni"="municipio_nome", "cd_micro"="municipio_microrregiao_id", "nm_micro"="municipio_microrregiao_nome", "cd_meso"="municipio_microrregiao_mesorregiao_id", "mn_Meso"="municipio_microrregiao_mesorregiao_nome", "cd_uf"="municipio_microrregiao_mesorregiao_uf_id", "sg_rg"="municipio_microrregiao_mesorregiao_uf_regiao_sigla")
 rm(list = c("api_get_dmunisul", "api_content_dmunisul", "api_df_dmunisul"))
 
 # Secex data
@@ -60,16 +60,16 @@ exp_comex <- vroom::vroom(file = "data/EXP_COMPLETA_MUN.csv")
 exp_comex_sul10 <- exp_comex %>% 
   janitor::clean_names() %>% 
   dplyr::filter(co_ano>=2010) %>%
-  dplyr::filter(sg_uf_mun%in%c("SC", "RS", "PR")) %>%
+  # dplyr::filter(sg_uf_mun%in%c("SC", "RS", "PR")) %>%
   dplyr::mutate("sh2" = substr(sh4, 1, 2)) %>%
-  dplyr::group_by(co_mun, sh2) %>% 
+  dplyr::group_by(co_mun) %>% 
   dplyr::summarise(
     sum_vl_fob = sum(vl_fob)
   ) %>% 
   dplyr::mutate(
     "cd_mun"=as.integer(co_mun)
   ) %>% 
-  dplyr::select(cd_mun, sh2, sum_vl_fob) 
+  dplyr::select(cd_mun, sum_vl_fob) 
 rm(exp_comex)
 
 # Descrição SH
@@ -89,8 +89,9 @@ sh <- readxl::read_excel("data/Tabela-de-códigos-de-mercadorias-NCM-SH2-e-SH4-�
   dplyr::group_by(sh2) %>% 
   dplyr::summarise(descricao_sh2 = dplyr::first(descricao_sh2))
 
+# exp_muni <- exp_comex_sul10
 exp_muni <- left_join(exp_comex_sul10, sh, by = "sh2") #%>% 
-  # dplyr::filter(sh2%in%"26")
+# dplyr::filter(sh2%in%"26")
 
 rm(sh)
 
@@ -99,7 +100,7 @@ rm(sh)
 # Municípios do Sul
 sf_sul_muni <- sf::st_read("data/br_municipios_20200807/") %>%
   janitor::clean_names() %>% 
-  dplyr::filter(sigla_uf%in%c("PR", "SC", "RS")) %>% 
+  # dplyr::filter(sigla_uf%in%c("PR", "SC", "RS")) %>% 
   dplyr::mutate(cd_mun = as.integer(cd_mun))
 # plot(sf_sul_muni["cd_mun"])
 
@@ -263,13 +264,13 @@ gc()
 ghexcont1 <- ggplot2::ggplot() +
   ggplot2::geom_sf(ggplot2::aes(fill=sum_hex_vl_fob), data = sul_hex, color = "black", alpha=1) +
   ggplot2::geom_sf(data = sf_sul_uf, color = "black", fill = NA, size = 1) +
-  # annotate("text", x = -56.4, y = -26.6, label = MoransI(SDF = sul_hex, vec = "sum_hex_vl_fob", style = "B"), size=4) +
+  annotate("text", x = -56.4, y = -26.6, label = MoransI(SDF = sul_hex, vec = "sum_hex_vl_fob", style = "B"), size=4) +
   ggplot2::theme_void() +
   ggplot2::theme(
     plot.title = ggplot2::element_text(hjust = 0.5),
     plot.subtitle = ggplot2::element_text(hjust = 0.5)
   ) +
-   ggplot2::labs(
+  ggplot2::labs(
     # title = "Exportações do Sul do Brasil agregadas em hexágonos", 
     # subtitle = "Distribuição contínua do somatório de jan/2010 à set/2020",
     # caption = "Dados Secex",
@@ -277,9 +278,9 @@ ghexcont1 <- ggplot2::ggplot() +
   ); ghexcont1
 
 
-ghexcont2 <- ggplot2::ggplot() +
-  ggplot2::geom_sf(ggplot2::aes(fill=sum_hex_vl_fob), data = sul_hex, color = "black", alpha=1) +
-  ggplot2::geom_sf(data = sf_sul_uf, color = "black", fill = NA, size = 1) +
+  ghexcont2 <- ggplot2::ggplot() +
+    ggplot2::geom_sf(ggplot2::aes(fill=sum_hex_vl_fob), data = sul_hex, color = "black", alpha=1) +
+    ggplot2::geom_sf(data = sf_sul_uf, color = "black", fill = NA, size = 0.5) +
   # annotate("text", x = -56.4, y = -26.6, label = MoransI(SDF = sul_hex, vec = "sum_hex_vl_fob", style = "B"), size=4) +
   ggplot2::scale_fill_gradientn(colours = c("#e3e3e3", "#000e3d")) + #
   ggplot2::theme_void() +
@@ -297,8 +298,8 @@ ghexcont2 <- ggplot2::ggplot() +
 g_bw_cat <- ggplot2::ggplot() +
   ggplot2::geom_sf(ggplot2::aes(fill=sum_hex_vl_fob_cat3), data = sul_hex, color = "black", alpha=.8) +
   ggplot2::geom_sf(data = sf_sul_uf, color = "black", fill = NA, size = 1) +
-  scale_fill_manual(values = colorRampPalette(c("#000000", "#e3e3e3"))(6))+ # Greys, RdBu, Reds, RdGy***, BrBG
-  # annotate("text", x = -56.4, y = -26.6, label = MoransI(SDF = sul_hex, vec = "sum_hex_vl_fob_cat2", style = "B"), size=4) +
+  scale_fill_manual(values = colorRampPalette(c("#000000", "#e3e3e3"))(6)) + # Greys, RdBu, Reds, RdGy***, BrBG
+  annotate("text", x = -56.4, y = -26.6, label = MoransI(SDF = sul_hex, vec = "sum_hex_vl_fob_cat2", style = "B"), size=4) +
   ggplot2::theme_void() +
   ggplot2::theme(
     plot.title = ggplot2::element_text(hjust = 0.5),
@@ -321,7 +322,7 @@ g_col_cat <- ggplot2::ggplot() +
   ) +
   ggplot2::labs(
     fill = "Exportações FOB (US$)"
-  ); g_col_cat
+  ); g_col_cat; gc()
 
 
 g_bw_meso <- ggplot2::ggplot() +

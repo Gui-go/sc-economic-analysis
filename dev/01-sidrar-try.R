@@ -201,3 +201,68 @@ ggplot(t5434df, aes(x=trimestres))+
 
 
 
+# Industria 3 estados Sul
+
+info_sidra(x = "5434")
+
+seqsem <- seq.Date(from = as.Date("2012-02-15"), to = today(), by = "quarter") %>% 
+  quarter(., with_year = TRUE) %>% 
+  sub(pattern = "\\.", replacement = "0", x = .)
+
+t5434 <- get_sidra(
+  x = "5434", 
+  period = seqsem, 
+  geo = c("State", "Brazil"), 
+  geo.filter = list("Brazil" = 1, "State" = c(41, 42, 43))
+)
+
+t5434f <- t5434 %>% 
+  janitor::clean_names() %>%
+  dplyr::select("brasil_e_unidade_da_federacao", "brasil_e_unidade_da_federacao_codigo", "trimestre_codigo", "trimestre", "variavel", "grupamento_de_atividades_no_trabalho_principal_pnadc", "valor", "unidade_de_medida") %>% 
+  dplyr::filter(variavel == "Distribuição percentual das pessoas de 14 anos ou mais de idade, ocupadas na semana de referência") %>% 
+  dplyr::filter(grupamento_de_atividades_no_trabalho_principal_pnadc == "Indústria geral") # %>% 
+  # dplyr::filter(brasil_e_unidade_da_federacao%in%c("Brasil", "Paraná", "Santa Catarina", "Rio Grande do Sul"))
+# sapply(t5434f, unique)
+t5434f_br <- t5434f %>% 
+  dplyr::filter(brasil_e_unidade_da_federacao%in%c("Brasil")) %>% 
+  dplyr::rename("valor_br"="valor")
+t5434f_pr <- t5434f %>% 
+  dplyr::filter(brasil_e_unidade_da_federacao%in%c("Paraná")) %>% 
+  dplyr::rename("valor_pr"="valor")
+t5434f_sc <- t5434f %>% 
+  dplyr::filter(brasil_e_unidade_da_federacao%in%c("Santa Catarina")) %>% 
+  dplyr::rename("valor_sc"="valor")
+t5434f_rs <- t5434f %>% 
+  dplyr::filter(brasil_e_unidade_da_federacao%in%c("Rio Grande do Sul")) %>% 
+  dplyr::rename("valor_rs"="valor")
+
+df_pnadc_ind_geral <- left_join(
+  t5434f_br, t5434f_pr, 
+  by = c("trimestre_codigo", "trimestre", "variavel", "grupamento_de_atividades_no_trabalho_principal_pnadc", "unidade_de_medida")) %>% 
+  left_join(
+    ., t5434f_sc,
+    by = c("trimestre_codigo", "trimestre", "variavel", "grupamento_de_atividades_no_trabalho_principal_pnadc", "unidade_de_medida")) %>% 
+  left_join(
+    ., t5434f_rs,
+    by = c("trimestre_codigo", "trimestre", "variavel", "grupamento_de_atividades_no_trabalho_principal_pnadc", "unidade_de_medida")) %>% 
+  dplyr::select("trimestre_codigo", "trimestre", "valor_br", "valor_pr", "valor_sc", "valor_rs")
+
+df_pnadc_ind_geral
+
+df_pnadc_ind_geral$tri = seqtri[1:nrow(df_pnadc_ind_geral)]
+
+ggplot(df_pnadc_ind_geral, aes(x=tri))+
+  geom_line(aes(y = valor_br, color = "ind_geral_br"))+
+  geom_line(aes(y = valor_pr, color = "ind_geral_pr"))+
+  geom_line(aes(y = valor_sc, color = "ind_geral_sc"))+
+  geom_line(aes(y = valor_rs, color = "ind_geral_rs"))+
+  theme_minimal()+
+  theme(legend.position="bottom")+
+  labs(
+    title = "Variação na ocupação da Indústria geral dos residentes de Santa Catarina",
+    subtitle = "Distribuição percentual das pessoas de 14 anos ou mais de idade, ocupadas na semana de referência",
+    y = "Percentual de pessoas ocupadas na Indústria geral",
+    x = "Tempo",
+    caption = "Fonte: PNADc",
+    colour = ""
+  )

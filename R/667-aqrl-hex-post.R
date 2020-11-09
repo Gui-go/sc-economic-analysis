@@ -37,12 +37,12 @@ if(!require("zoo")){install.packages("zoo")}
 source(file = "R/fct_shpToHexagon.R")
 source(file = "R/fct_centroid.R")
 # source(file = "R/111-shTranslator.R")
-source(file = "R/fct_MoransI.R")
+# source(file = "R/fct_MoransI.R")
 # Dados -------------------------------------------------------------------
 
 # Divisão política minucipal+ do Sul
 # https://servicodados.ibge.gov.br/api/docs/localidades?versao=1
-api_get_dmunisul <- httr::GET(url = "https://servicodados.ibge.gov.br/api/v1/localidades/estados/41|42|43/distritos")
+api_get_dmunisul <- httr::GET(url = "https://servicodados.ibge.gov.br/api/v1/localidades/distritos")
 api_content_dmunisul <- httr::content(api_get_dmunisul, as = "text")
 api_df_dmunisul <- jsonlite::fromJSON(api_content_dmunisul, flatten = TRUE)
 df_dmuni_sul <- api_df_dmunisul %>% 
@@ -60,51 +60,37 @@ exp_comex <- vroom::vroom(file = "data/EXP_COMPLETA_MUN.csv")
 exp_comex_sul10 <- exp_comex %>% 
   janitor::clean_names() %>% 
   dplyr::filter(co_ano>=2010) %>%
-  dplyr::filter(sg_uf_mun%in%c("SC", "RS", "PR")) %>%
+  # dplyr::filter(sg_uf_mun%in%c("SC", "RS", "PR")) %>%
   dplyr::mutate("sh2" = substr(sh4, 1, 2)) %>%
-  dplyr::group_by(co_mun, sh2) %>% 
+  dplyr::group_by(co_mun) %>% 
   dplyr::summarise(
     sum_vl_fob = sum(vl_fob)
   ) %>% 
   dplyr::mutate(
-    "cd_mun"=as.integer(co_mun)
+    "cd_mun"=as.integer(co_mun)#,
+    # "cd_mun"=as.integer(co_mun)+100000
+    # "cd_mun"=if_else(as.integer(co_mun) >= 3400000 & as.integer(co_mun) <= 3500000, (as.numeric(co_mun)-100000), (as.numeric(co_mun)) )
   ) %>% 
-  dplyr::select(cd_mun, sh2, sum_vl_fob) 
+  dplyr::select(cd_mun, sum_vl_fob) 
+
+exp_comex_sul10[which(exp_comex_sul10$cd_mun>=3400000 & exp_comex_sul10$cd_mun<=3500000), 'cd_mun'] <- exp_comex_sul10[which(exp_comex_sul10$cd_mun>=3400000 & exp_comex_sul10$cd_mun<=3500000), 'cd_mun']+100000
+
+unique(exp_comex_sul10$cd_mun2)
 rm(exp_comex)
 
-# Descrição SH
-sh <- readxl::read_excel("data/Tabela-de-códigos-de-mercadorias-NCM-SH2-e-SH4-–-Atualizada-em-10-05-2016.xls", skip = 3)  %>% 
-  janitor::clean_names() %>% 
-  dplyr::mutate(
-    codigo_ncm_sh2 = zoo::na.locf(codigo_ncm_sh2),
-    descricao = zoo::na.locf(descricao)
-  ) %>% 
-  dplyr::rename(
-    "descricao_sh2" = descricao,
-    "descricao_sh4" = descricao_1,
-    "sh2" = codigo_ncm_sh2,
-    "sh4" = codigo_ncm_sh4
-  ) %>% 
-  dplyr::select(sh2, descricao_sh2) %>% 
-  dplyr::group_by(sh2) %>% 
-  dplyr::summarise(descricao_sh2 = dplyr::first(descricao_sh2))
-
-exp_muni <- left_join(exp_comex_sul10, sh, by = "sh2") #%>% 
-  # dplyr::filter(sh2%in%"26")
-
-rm(sh)
 
 # Malha geográfica
 # IBGE > GeoCiencias > Downloads > organizacao_do_territorio > malhas_territoriais > malhas_municipais > municipio_2019 > Brasil > BR > br_municipios_20200807.zip
 # Municípios do Sul
 sf_sul_muni <- sf::st_read("data/br_municipios_20200807/") %>%
   janitor::clean_names() %>% 
-  dplyr::filter(sigla_uf%in%c("PR", "SC", "RS")) %>% 
+  # dplyr::filter(sigla_uf%in%c("PR", "SC", "RS")) %>% 
   dplyr::mutate(cd_mun = as.integer(cd_mun))
 # plot(sf_sul_muni["cd_mun"])
 
 # UFs do Sul
 sf_sul_uf <- sf_sul_muni %>% 
+  dplyr::filter(sigla_uf %in% c("ES", "MG", "SP", "RJ")) %>% 
   dplyr::group_by(sigla_uf) %>% 
   dplyr::summarise()
 # plot(sf_sul_uf["sigla_uf"])
@@ -112,11 +98,17 @@ sf_sul_uf <- sf_sul_muni %>%
 sf_sul_hex <- shpToHexagon(shp = sf_sul_uf, cellsize = 1.15)
 
 # Joins & Summaries -------------------------------------------------------
-sul_muni <- dplyr::left_join(sf_sul_muni, exp_muni, by = "cd_mun") %>%
+sul_muni <- dplyr::left_join(sf_sul_muni, exp_comex_sul10, by = "cd_mun") %>%
   left_join(., df_dmuni_sul, by = "cd_mun") %>%
   # dplyr::summarise(sum_vl_fob = sum(sum_vl_fob)) %>% 
-  dplyr::mutate(sum_vl_fob = dplyr::if_else(is.na(sum_vl_fob), 0, sum_vl_fob)) %>%
+  dplyr::mutate(
+    sum_vl_fob = dplyr::if_else(is.na(sum_vl_fob), 0, sum_vl_fob)#,
+  ) %>%
+  dplyr::filter(sigla_uf %in% c("ES", "MG", "SP", "RJ")) %>%
+  # dplyr::filter(sigla_uf %in% c("RR", "MS")) %>% 
   sf::st_set_crs(4326)
+
+
 
 sul_micro <- sul_muni %>% 
   # sf::st_set_crs(4326) %>%
@@ -269,17 +261,17 @@ ghexcont1 <- ggplot2::ggplot() +
     plot.title = ggplot2::element_text(hjust = 0.5),
     plot.subtitle = ggplot2::element_text(hjust = 0.5)
   ) +
-   ggplot2::labs(
+  ggplot2::labs(
     # title = "Exportações do Sul do Brasil agregadas em hexágonos", 
     # subtitle = "Distribuição contínua do somatório de jan/2010 à set/2020",
     # caption = "Dados Secex",
     fill = "Exportações FOB (US$)"
-  ); ghexcont1
+  ); ghexcont1; gc()
 
 
 ghexcont2 <- ggplot2::ggplot() +
   ggplot2::geom_sf(ggplot2::aes(fill=sum_hex_vl_fob), data = sul_hex, color = "black", alpha=1) +
-  ggplot2::geom_sf(data = sf_sul_uf, color = "black", fill = NA, size = 1) +
+  ggplot2::geom_sf(data = sf_sul_uf, color = "black", fill = NA, size = 0.6) +
   # annotate("text", x = -56.4, y = -26.6, label = MoransI(SDF = sul_hex, vec = "sum_hex_vl_fob", style = "B"), size=4) +
   ggplot2::scale_fill_gradientn(colours = c("#e3e3e3", "#000e3d")) + #
   ggplot2::theme_void() +
@@ -292,7 +284,7 @@ ghexcont2 <- ggplot2::ggplot() +
     # subtitle = "Distribuição contínua do somatório de jan/2010 à set/2020",
     # caption = "Dados Secex",
     fill = "Exportações FOB (US$)"
-  ); ghexcont2
+  ); ghexcont2; gc()
 
 g_bw_cat <- ggplot2::ggplot() +
   ggplot2::geom_sf(ggplot2::aes(fill=sum_hex_vl_fob_cat3), data = sul_hex, color = "black", alpha=.8) +
@@ -306,9 +298,10 @@ g_bw_cat <- ggplot2::ggplot() +
   ) +
   ggplot2::labs(
     fill = "Exportações FOB (US$)"
-  ); g_bw_cat
+  ); g_bw_cat; gc()
 
 
+#
 g_col_cat <- ggplot2::ggplot() +
   ggplot2::geom_sf(ggplot2::aes(fill=sum_hex_vl_fob_cat3), data = sul_hex, color = "black", alpha=.8) +
   ggplot2::geom_sf(data = sf_sul_uf, color = "black", fill = NA, size = 1) +
@@ -321,7 +314,7 @@ g_col_cat <- ggplot2::ggplot() +
   ) +
   ggplot2::labs(
     fill = "Exportações FOB (US$)"
-  ); g_col_cat
+  ); g_col_cat; gc()
 
 
 g_bw_meso <- ggplot2::ggplot() +
