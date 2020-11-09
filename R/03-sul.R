@@ -141,3 +141,6 @@ c("#e3e3e3", "#5c5c5c", "#303030", "#000000") # Cinza claro, Cinza médio, Cinza
 c("#a10000", "#a19600", "#33a100") # Vermelho, Amarelo, Verde
 
 br_muni <- sf::st_read("data/br_municipios_20200807/BR_Municipios_2019.shp")
+
+
+
