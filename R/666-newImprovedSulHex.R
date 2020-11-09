@@ -44,9 +44,11 @@ api_df_dmunisul <- jsonlite::fromJSON(api_content_dmunisul, flatten = TRUE)
 df_dmuni_sul <- api_df_dmunisul %>% 
   janitor::clean_names() %>% 
   dplyr::rename("cd_mun" = "municipio_id")
-rm(c(api_get_dmunisul, api_content_dmunisul, api_df_dmunisul))
+rm(list = c("api_get_dmunisul", "api_content_dmunisul", "api_df_dmunisul"))
+
 # Secex data
 # http://www.mdic.gov.br/index.php/comercio-exterior/estatisticas-de-comercio-exterior/base-de-dados-do-comercio-exterior-brasileiro-arquivos-para-download
+# 2. Base de dados detalhada por Município da empresa exportadora/importadora e Posição do Sistema Harmonizado (SH4)
 # Exportação > Volume único
 exp_comex <- vroom::vroom(file = "data/EXP_COMPLETA_MUN.csv")
 exp_comex_sul10 <- exp_comex %>% 
